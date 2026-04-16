@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>POS Papel y Luna | MVP 2</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="brand">
+        <h1>Papeleria Papel y Luna</h1>
+        <p>Sistema POS - Módulo Administrativo</p>
+    </div>
+    <nav class="nav-principal">
+        <button onclick="mostrarSeccion('moduloVentas')"><i class="fa-solid fa-cash-register"></i> Ventas</button>
+        <button onclick="mostrarSeccion('moduloCompras')"><i class="fa-solid fa-truck-loading"></i> Compras</button>
+        <button onclick="mostrarSeccion('moduloEntidades')"><i class="fa-solid fa-users"></i> Entidades</button>
+    </nav>
+</header>
+
+<main>
+    <section id="moduloVentas" class="modulo">
+        <div class="layout-ventas">
+            <div class="catalogo-side">
+                <h2>Catálogo</h2>
+                <div id="productosContainer" class="productos-grid">
+                    <p>Cargando productos...</p>
+                </div>
+            </div>
+            <div class="carrito-side">
+                <h2><i class="fa-solid fa-cart-shopping"></i> Carrito <span id="contadorCarrito">0</span></h2>
+                <div id="listaCarrito"></div>
+                <hr>
+                <div class="controles-pago">
+                    <label>Cliente:</label>
+                    <select id="selectCliente"></select>
+                    <label>Pago:</label>
+                    <select id="metodoPago">
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Nequi">Nequi</option>
+                        <option value="Debe">Debe (Crédito)</option>
+                    </select>
+                    <h3>Total: $<span id="totalVenta">0</span></h3>
+                    <button onclick="finalizarVenta()" class="btn-confirmar">Confirmar Venta</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="moduloCompras" class="modulo oculto">
+        <h2>Registrar Compra</h2>
+        <div class="form-container">
+            <label>Proveedor:</label>
+            <select id="selectProvCompra"></select>
+            <label>Producto:</label>
+            <select id="selectProdCompra"></select>
+            <input type="number" id="cantCompra" placeholder="Cantidad">
+            <input type="number" id="costoCompra" placeholder="Costo Unitario">
+            <button onclick="registrarCompra()" class="btn-confirmar">Guardar Compra</button>
+        </div>
+    </section>
+
+    <section id="moduloEntidades" class="modulo oculto">
+        <h2>Gestión de Entidades</h2>
+        <div id="listasEntidades">
+            <p>Datos cargados desde la API.</p>
+        </div>
+    </section>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
