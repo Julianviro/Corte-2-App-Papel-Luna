@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbz6N302f_WhHXwN53cab3Xo1ke0gdTPXKt89iK6sXJKj_-AihhyazG1dJ03jZmda8sCMQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx_3RJmt3KIi0hvER2EGXBcAoKrs7m1RBfl3sM8eF8uVCG0OaGDMAMOXmq8hVt4gi7JOg/exec";
 
 export const API = {
     async get(resource) {
@@ -25,4 +25,3 @@ export const API = {
             return { success: false, message: "Error de conexión" };
         }
     }
-};
