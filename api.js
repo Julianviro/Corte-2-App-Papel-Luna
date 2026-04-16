@@ -7,11 +7,10 @@ export const API = {
             const res = await response.json();
             return res.success ? res.data : [];
         } catch (error) {
-            console.error(`Error en GET ${resource}:`, error);
+            console.error(`Error GET ${resource}:`, error);
             return [];
         }
     },
-
     async post(resource, data) {
         try {
             const response = await fetch(`${API_URL}?resource=${resource}`, {
@@ -21,8 +20,8 @@ export const API = {
             });
             return await response.json();
         } catch (error) {
-            console.error(`Error en POST ${resource}:`, error);
-            return { success: false, message: "Error de conexión" };
+            console.error(`Error POST ${resource}:`, error);
+            return { success: false };
         }
     }
 };
