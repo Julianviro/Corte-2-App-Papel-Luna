@@ -1,126 +1,117 @@
 import { API } from './api.js';
 
-// ESTADO GLOBAL
 let state = {
     productos: [],
     carrito: [],
     clientes: [],
     proveedores: [],
-    categorias: []
+    categorias: [],
+    ventas: []
 };
 
-// INICIALIZACIÓN
 async function init() {
-    console.log("Cargando datos desde la nube...");
-    state.productos = await API.get('productos');
-    state.clientes = await API.get('clientes');
-    state.proveedores = await API.get('proveedores');
-    state.categorias = await API.get('categorias');
-    
-    renderCatalogo();
-    actualizarSelects();
+    console.log("Sincronizando con Google Sheets...");
+    try {
+        // Carga paralela para mayor velocidad
+        const [prods, clis, provs, cats, vts] = await Promise.all([
+            API.get('productos'),
+            API.get('clientes'),
+            API.get('proveedores'),
+            API.get('categorias'),
+            API.get('ventas')
+        ]);
+
+        state.productos = prods;
+        state.clientes = clis;
+        state.proveedores = provs;
+        state.categorias = cats;
+        state.ventas = vts;
+
+        renderCatalogo();
+        actualizarSelects();
+        console.log("Datos cargados exitosamente.");
+    } catch (e) {
+        console.error("Error en inicialización:", e);
+    }
 }
 
-// NAVEGACIÓN ENTRE MÓDULOS
-window.mostrarSeccion = (idSeccion) => {
-    document.querySelectorAll('.modulo').forEach(s => s.classList.add('oculto'));
-    document.getElementById(idSeccion).classList.remove('oculto');
+// Corregido para usar tus clases reales del HTML
+window.abrirPanel = (id) => {
+    document.querySelectorAll('.panel').forEach(p => p.classList.add('oculto'));
+    const panel = document.getElementById(id);
+    if (panel) panel.classList.remove('oculto');
+    document.getElementById("overlay").classList.add("activo");
 };
 
-// LÓGICA DE VENTAS (CATÁLOGO)
+window.cerrarPanel = () => {
+    document.querySelectorAll('.panel').forEach(p => p.classList.add('oculto'));
+    document.getElementById("overlay").classList.remove("activo");
+};
+
+window.agregarAlCarrito = (id) => {
+    const prod = state.productos.find(p => String(p.id) === String(id));
+    if (!prod) return;
+
+    const item = state.carrito.find(i => String(i.id) === String(id));
+    if (item) {
+        item.cantidad++;
+    } else {
+        state.carrito.push({ ...prod, cantidad: 1 });
+    }
+    
+    // Actualizar UI
+    document.getElementById("contadorCarrito").innerText = state.carrito.length;
+    renderCarrito();
+};
+
+function renderCarrito() {
+    const lista = document.getElementById("listaCarrito");
+    if (!lista) return;
+
+    lista.innerHTML = state.carrito.map(item => `
+        <div class="producto-item">
+            <p><strong>${item.nombre}</strong> x ${item.cantidad}</p>
+            <p>$${item.precio * item.cantidad}</p>
+        </div>
+    `).join('');
+
+    const total = state.carrito.reduce((acc, i) => acc + (Number(i.precio) * i.cantidad), 0);
+    // Asumiendo que tienes un elemento con este ID para el total
+    const totalVenta = document.getElementById("totalVenta");
+    if (totalVenta) totalVenta.innerText = total;
+}
+
 function renderCatalogo() {
     const container = document.getElementById("productosContainer");
-    if (state.productos.length === 0) {
-        container.innerHTML = "<p>No hay productos en la base de datos.</p>";
-        return;
-    }
+    if (!container) return;
+
     container.innerHTML = state.productos.map(p => `
         <div class="producto-card">
-            <img src="${p.img || 'placeholder.png'}" alt="${p.nombre}">
+            <img src="${p.img || 'https://via.placeholder.com/150'}" alt="${p.nombre}">
             <h3>${p.nombre}</h3>
-            <p class="categoria">${p.categoria}</p>
             <p class="precio">$${p.precio}</p>
             <button onclick="agregarAlCarrito('${p.id}')">🛒 Agregar</button>
         </div>
     `).join('');
 }
 
-window.agregarAlCarrito = (id) => {
-    const prod = state.productos.find(p => p.id == id);
-    const item = state.carrito.find(i => i.id == id);
-    if (item) {
-        item.cantidad++;
-    } else {
-        state.carrito.push({ ...prod, cantidad: 1 });
-    }
-    renderCarrito();
-};
-
-function renderCarrito() {
-    const lista = document.getElementById("listaCarrito");
-    const totalElem = document.getElementById("totalVenta");
-    const contador = document.getElementById("contadorCarrito");
-
-    lista.innerHTML = state.carrito.map(item => `
-        <div class="carrito-item">
-            <span>${item.nombre} x${item.cantidad}</span>
-            <span>$${item.precio * item.cantidad}</span>
-        </div>
-    `).join('');
-
-    const total = state.carrito.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
-    totalElem.innerText = total;
-    contador.innerText = state.carrito.length;
-}
-
-window.finalizarVenta = async () => {
-    if (state.carrito.length === 0) return alert("Carrito vacío");
-
-    const venta = {
-        id: crypto.randomUUID().slice(0, 8),
-        fecha: new Date().toLocaleString(),
-        clienteId: document.getElementById("selectCliente").value,
-        total: state.carrito.reduce((acc, i) => acc + (i.precio * i.cantidad), 0),
-        metodoPago: document.getElementById("metodoPago").value,
-        items: state.carrito
-    };
-
-    const res = await API.post('ventas', venta);
-    if (res.success) {
-        alert("Venta registrada con éxito");
-        state.carrito = [];
-        renderCarrito();
-        init(); // Recargar para actualizar stock
-    }
-};
-
-// LÓGICA DE COMPRAS
-window.registrarCompra = async () => {
-    const compra = {
-        id: crypto.randomUUID().slice(0, 8),
-        fecha: new Date().toLocaleString(),
-        proveedorId: document.getElementById("selectProvCompra").value,
-        productoId: document.getElementById("selectProdCompra").value,
-        cantidad: Number(document.getElementById("cantCompra").value),
-        costoUnitario: Number(document.getElementById("costoCompra").value),
-        metodoPago: document.getElementById("metodoPagoCompra").value
-    };
-
-    const res = await API.post('compras', compra);
-    if (res.success) {
-        alert("Compra registrada e inventario actualizado");
-        init();
-    }
-};
-
 function actualizarSelects() {
     const selCli = document.getElementById("selectCliente");
-    const selProv = document.getElementById("selectProvCompra");
-    const selProd = document.getElementById("selectProdCompra");
-
-    selCli.innerHTML = state.clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-    selProv.innerHTML = state.proveedores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
-    selProd.innerHTML = state.productos.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+    if (selCli) {
+        selCli.innerHTML = state.clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    }
 }
 
-window.onload = init;
+// Vincular eventos a botones del footer que no tienen onclick en el HTML
+document.addEventListener("DOMContentLoaded", () => {
+    init();
+    
+    const btnCarrito = document.getElementById("btnToggleCarrito");
+    if (btnCarrito) btnCarrito.onclick = () => window.abrirPanel('panelCarrito');
+    
+    const btnHistorial = document.getElementById("btnToggleHistorial");
+    if (btnHistorial) btnHistorial.onclick = () => window.abrirPanel('panelHistorial');
+    
+    const btnCerrar = document.getElementById("btnCerrarPanel");
+    if (btnCerrar) btnCerrar.onclick = window.cerrarPanel;
+});
