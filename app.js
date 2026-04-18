@@ -1,6 +1,6 @@
 // CONFIGURACIÓN DE LA API
 const API_URL = "https://script.google.com/macros/s/AKfycbz6N302f_WhHXwN53cab3Xo1ke0gdTPXKt89iK6sXJKj_-AihhyazG1dJ03jZmda8sCMQ/exec";
-
+ 
 const API = {
     async get(resource) {
         try {
