@@ -159,8 +159,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Intentar cargar productos de la API, si no, usar los locales
     const prods = await API.get("productos");
     productos = prods.length > 0 ? prods : [
-        { id: 1, nombre: "Papel", categoria: "Papeleria", img: "Papel imagen.png", precio: 200 },
-        { id: 2, nombre: "Esfero", categoria: "Escritura", img: "Esfero.png", precio: 400 }
+        { id: 1, nombre: "Papel", categoria: "Papeleria", img: "imagen.png", precio: 200 },
+        { id: 2, nombre: "Esfero", categoria: "Escritura", img: "esfero.png", precio: 400 }
     ];
 
     ventas = await API.get("ventas");
