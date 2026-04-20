@@ -85,17 +85,13 @@ function renderizarProductos(lista = productos) {
     cont.innerHTML = "";
 
     lista.forEach(p => {
-        // Log para ver en la consola (F12) qué está buscando el código
-        console.log(`Producto: ${p.nombre} | Buscando imagen en: images/${p.img}`);
-
         const card = document.createElement("div");
         card.className = "producto-card";
         card.innerHTML = `
             <div class="img-container">
                 <img src="images/${p.img}" 
                      alt="${p.nombre}"
-                     style="width:100%; height:auto; display:block;"
-                     onerror="this.src='https://via.placeholder.com/150?text=No+Encontrada'">
+                     onerror="this.src='https://via.placeholder.com/150?text=Error+en+Nombre'">
             </div>
             <h3>${p.nombre}</h3>
             <p>$${p.precio}</p>
