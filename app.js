@@ -163,11 +163,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const prods = await API.get("productos");
     
-    // Si la API no trae nada, cargamos estos de ejemplo:
-    productos = prods.length > 0 ? prods : [
-        { id: 1, nombre: "Borrador", categoria: "Varios", img: "borrador.png", precio: 500 },
-        { id: 2, nombre: "Lapiz", categoria: "Varios", img: "lapiz.png", precio: 600 },
-        { id: 3, nombre: "Papas", categoria: "Varios", img: "papas.png", precio: 1500 }
+productos = prods.length > 0 ? prods : [
+    { id: 1, nombre: "Papel", categoria: "Papelería", img: "papel.png", precio: 200 },
+    { id: 2, nombre: "Lápiz", categoria: "Escritura", img: "lapiz.png", precio: 400 },
+    { id: 3, nombre: "Carpetas", categoria: "Oficina", img: "carpetas.png", precio: 1500 }
+];
     ];
 
     ventas = await API.get("ventas");
