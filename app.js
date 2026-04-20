@@ -75,25 +75,22 @@ function totalCarrito() {
 // --- RENDERIZADO DE PRODUCTOS CON IMÁGENES ---
 function renderizarProductos(lista = productos) {
     const cont = document.getElementById("productosContainer");
-    if (!cont) return;
     cont.innerHTML = "";
 
     lista.forEach(p => {
+        // CONSOLA PARA DEPURAR: Esto te dirá en el navegador qué está viendo el código
+        console.log("Cargando producto:", p.nombre, "con imagen:", p.img);
+
         const card = document.createElement("div");
         card.className = "producto-card";
-        
-        // La ruta de la imagen se construye aquí: carpeta 'images/' + nombre del archivo
         card.innerHTML = `
-            <div class="img-container" style="text-align:center;">
+            <div class="img-container">
                 <img src="images/${p.img}" 
-                     alt="${p.nombre}" 
-                     style="width:100%; max-width:150px; height:auto; border-radius:8px;"
-                     onerror="this.src='https://via.placeholder.com/150?text=Error+Imagen'">
+                     onerror="this.src='https://via.placeholder.com/150?text=No+Encontrada'">
             </div>
             <h3>${p.nombre}</h3>
-            <p>${p.categoria}</p>
-            <p><strong>$${p.precio}</strong></p>
-            <button onclick="agregarAlCarrito(${p.id})">Agregar</button>
+            <p>$${p.precio}</p>
+            <button onclick="agregarAlCarrito('${p.id}')">Agregar</button>
         `;
         cont.appendChild(card);
     });
