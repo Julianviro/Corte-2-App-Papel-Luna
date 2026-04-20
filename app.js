@@ -46,10 +46,16 @@ function nuevaVenta() {
 
 // --- LÓGICA DEL CARRITO ---
 function agregarAlCarrito(id) {
+    // Usamos == para comparar número con texto si es necesario
     const prod = productos.find(p => p.id == id);
+    if (!prod) return;
+
     const existe = carrito.find(p => p.id == id);
-    if (existe) existe.cantidad++;
-    else carrito.push({ ...prod, cantidad: 1 });
+    if (existe) {
+        existe.cantidad++;
+    } else {
+        carrito.push({ ...prod, cantidad: 1 });
+    }
     renderizarCarrito();
 }
 
@@ -69,23 +75,26 @@ function modificarCantidad(id, cant) {
 }
 
 function totalCarrito() {
-    return carrito.reduce((a, p) => a + p.precio * p.cantidad, 0);
+    return carrito.reduce((a, p) => a + (Number(p.precio) * p.cantidad), 0);
 }
 
 // --- RENDERIZADO DE PRODUCTOS CON IMÁGENES ---
 function renderizarProductos(lista = productos) {
     const cont = document.getElementById("productosContainer");
+    if (!cont) return;
     cont.innerHTML = "";
 
     lista.forEach(p => {
-        // CONSOLA PARA DEPURAR: Esto te dirá en el navegador qué está viendo el código
-        console.log("Cargando producto:", p.nombre, "con imagen:", p.img);
+        // Log para ver en la consola (F12) qué está buscando el código
+        console.log(`Producto: ${p.nombre} | Buscando imagen en: images/${p.img}`);
 
         const card = document.createElement("div");
         card.className = "producto-card";
         card.innerHTML = `
             <div class="img-container">
                 <img src="images/${p.img}" 
+                     alt="${p.nombre}"
+                     style="width:100%; height:auto; display:block;"
                      onerror="this.src='https://via.placeholder.com/150?text=No+Encontrada'">
             </div>
             <h3>${p.nombre}</h3>
@@ -110,10 +119,12 @@ function renderizarCarrito() {
         div.innerHTML = `
             <h4>${p.nombre}</h4>
             <p>$${p.precio} x ${p.cantidad} = $${p.precio * p.cantidad}</p>
-            <button onclick="modificarCantidad(${p.id}, ${p.cantidad - 1})">-</button>
-            <span>${p.cantidad}</span>
-            <button onclick="modificarCantidad(${p.id}, ${p.cantidad + 1})">+</button>
-            <button onclick="eliminarDelCarrito(${p.id})">x</button>
+            <div>
+                <button onclick="modificarCantidad('${p.id}', ${p.cantidad - 1})">-</button>
+                <span>${p.cantidad}</span>
+                <button onclick="modificarCantidad('${p.id}', ${p.cantidad + 1})">+</button>
+                <button onclick="eliminarDelCarrito('${p.id}')">Eliminar</button>
+            </div>
         `;
         cont.appendChild(div);
     });
@@ -130,7 +141,7 @@ function renderizarHistorial() {
 
     ventas.slice().reverse().forEach(v => {
         const div = document.createElement("div");
-        div.innerHTML = `<p>Venta #${v.id} - $${v.total} (${v.metodoPago})</p><hr>`;
+        div.innerHTML = `<p>Venta #${v.id} - $${v.total} (${v.metodoPago || 'N/A'})</p><hr>`;
         cont.appendChild(div);
     });
 }
@@ -152,9 +163,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const prods = await API.get("productos");
     
+    // Si la API no trae nada, cargamos estos de ejemplo:
     productos = prods.length > 0 ? prods : [
-        { id: 1, nombre: "Papel", categoria: "Papeleria", img: "papel.png", precio: 200 },
-        { id: 2, nombre: "Esfero", categoria: "Escritura", img: "esfero.png", precio: 400 }
+        { id: 1, nombre: "Borrador", categoria: "Varios", img: "borrador.png", precio: 500 },
+        { id: 2, nombre: "Lapiz", categoria: "Varios", img: "lapiz.png", precio: 600 },
+        { id: 3, nombre: "Papas", categoria: "Varios", img: "papas.png", precio: 1500 }
     ];
 
     ventas = await API.get("ventas");
@@ -164,31 +177,41 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderizarHistorial();
 
     // Eventos
-    document.getElementById("btnToggleCarrito").onclick = () => abrirPanel("panelCarrito");
-    document.getElementById("btnToggleHistorial").onclick = () => abrirPanel("panelHistorial");
+    const btnCarrito = document.getElementById("btnToggleCarrito");
+    if(btnCarrito) btnCarrito.onclick = () => abrirPanel("panelCarrito");
+
+    const btnHistorial = document.getElementById("btnToggleHistorial");
+    if(btnHistorial) btnHistorial.onclick = () => abrirPanel("panelHistorial");
+
     document.getElementById("overlay").onclick = cerrarPanel;
 
     // Confirmar Pago
-    document.getElementById("btnConfirmarPago").onclick = async () => {
-        const metodoBtn = document.querySelector(".metodos-pago .active");
-        if (!metodoBtn || carrito.length === 0) return alert("Revisa el carrito o el método de pago");
+    const btnPago = document.getElementById("btnConfirmarPago");
+    if(btnPago) {
+        btnPago.onclick = async () => {
+            const metodoBtn = document.querySelector(".metodos-pago .active");
+            if (!metodoBtn || carrito.length === 0) return alert("Selecciona método o agrega productos");
 
-        const venta = {
-            ...ventaActual,
-            items: carrito,
-            total: totalCarrito(),
-            metodoPago: metodoBtn.dataset.metodo,
-            estado: "cerrada"
+            const venta = {
+                ...ventaActual,
+                items: carrito,
+                total: totalCarrito(),
+                metodoPago: metodoBtn.dataset.metodo,
+                estado: "cerrada"
+            };
+
+            const res = await API.post("ventas", venta);
+            if (res.success) {
+                alert("Venta guardada exitosamente");
+                ventas.push(venta);
+                carrito = [];
+                ventaActual = nuevaVenta();
+                renderizarCarrito();
+                renderizarHistorial();
+                cerrarPanel();
+            } else {
+                alert("Error al guardar en el servidor");
+            }
         };
-
-        const res = await API.post("ventas", venta);
-        if (res.success) {
-            alert("Venta guardada");
-            ventas.push(venta);
-            carrito = [];
-            renderizarCarrito();
-            renderizarHistorial();
-            cerrarPanel();
-        }
-    };
+    }
 });
