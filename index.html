@@ -1,134 +1,138 @@
 <html lang="es">
-<head> 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Papeleria Papel y Luna | POS</title>
+<head> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papeleria Papel y Luna | POS</title>
 
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css?family=Acme" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css?family=Acme" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
 <body>
 
 <header class="header">
-    <img src="fotopapeleria.png" alt="Logo de la papeleria" class="logo">
-    <div class="brand">
-        <h1>Papeleria Papel y Luna</h1>
-        <p class="subtitle">Sistema Punto de Venta</p>
-    </div>
+    <img src="fotopapeleria.png" alt="Logo de la papeleria" class="logo">
+    <div class="brand">
+        <h1>Papeleria Papel y Luna</h1>
+        <p class="subtitle">Sistema Punto de Venta</p>
+    </div>
 </header>
 
 
+<!-- PANEL ADMIN PRODUCTOS (ÚNICO) -->
 <aside id="panelProductos" class="panel oculto">
-    <h2>⚙️ Administrar Productos</h2>
+    <h2>⚙️ Administrar Productos</h2>
 
-    <div class="producto-form">
-        <h3>Agregar Nuevo Producto</h3>
+    <div class="producto-form">
+        <h3>Agregar Nuevo Producto</h3>
 
-        <input type="text" id="prodNombre" placeholder="Nombre del producto *">
-        <input type="text" id="prodCategoria" placeholder="Categoría *">
-        <input type="number" id="prodPrecios" placeholder="Precio Proveedor*">
-        <input type="number" id="prodPrecio" placeholder="Precio *" min="1">
-        <input type="number" id="prodCantidad" placeholder="Mercancia disponible *" min="1">
+        <input type="text" id="prodNombre" placeholder="Nombre del producto *">
+        <input type="text" id="prodCategoria" placeholder="Categoría *">
+        <input type="number" id="prodPrecios" placeholder="Precio Proveedor*">
+        <input type="number" id="prodPrecio" placeholder="Precio *" min="1">
+        <input type="number" id="prodCantidad" placeholder="Mercancia disponible *" min="1">
 
-        <div class="form-buttons">
-            <button id="btnGuardarProducto" class="btn-guardar">Guardar Producto</button>
-            <button id="btnLimpiarForm" class="btn-limpiar">Limpiar</button>
-        </div>
-    </div>
+        <div class="form-buttons">
+            <button id="btnGuardarProducto" class="btn-guardar">Guardar Producto</button>
+            <button id="btnLimpiarForm" class="btn-limpiar">Limpiar</button>
+        </div>
+    </div>
 
-    <hr>
+    <hr>
 
-    <h3>Lista de Productos</h3>
-    <input type="text" id="buscarProducto" placeholder="Buscar producto..." class="search-input">
-    <div id="listaProductos" class="lista-productos"></div>
+    <h3>Lista de Productos</h3>
+    <input type="text" id="buscarProducto" placeholder="Buscar producto..." class="search-input">
+    <div id="listaProductos" class="lista-productos"></div>
 
-    <button id="btnCerrarProductos" class="btn-cerrar-panel" onclick="cerrarPanel()">Cerrar</button>
+    <button id="btnCerrarProductos" class="btn-cerrar-panel" onclick="cerrarPanel()">Cerrar</button>
 </aside>
 
 
+<!-- PANEL CARRITO -->
 <aside id="panelCarrito" class="panel oculto">
-    <h2>🛒 Carrito</h2>
+    <h2>🛒 Carrito</h2>
 
-    <div id="carritoContainer"></div>
-    <div id="totalContainer"></div>
+    <div id="carritoContainer"></div>
+    <div id="totalContainer"></div>
 
-    <div class="pago">
-        <h3>Método de pago</h3>
+    <div class="pago">
+        <h3>Método de pago</h3>
 
-        <div class="metodos-pago">
-            <button data-metodo="efectivo" class="active">Efectivo</button>
-            <button data-metodo="nequi">Nequi</button>
-        </div>
+        <div class="metodos-pago">
+            <button data-metodo="efectivo">Efectivo</button>
+            <button data-metodo="nequi">Nequi</button>
+        </div>
 
-        <div class="pago-efectivo">
-            <input type="number" id="dineroRecibido" placeholder="Dinero recibido" min="0">
-            <p id="cambioTexto"></p>
-        </div>
+        <div class="pago-efectivo">
+            <input type="number" id="dineroRecibido" placeholder="Dinero recibido" min="0">
+            <p id="cambioTexto"></p>
+        </div>
 
-        <button id="btnConfirmarPago">Confirmar pago</button>
-    </div>
+        <button id="btnConfirmarPago">Confirmar pago</button>
+    </div>
 
-    <button id="btnCerrarPanel" class="btn-cerrar-panel" onclick="cerrarPanel()">Cerrar</button>
+    <button id="btnCerrarPanel" class="btn-cerrar-panel">Cerrar</button>
 </aside>
 
 
+<!-- PANEL HISTORIAL -->
 <aside id="panelHistorial" class="panel oculto">
-    <h2>📄 Historial</h2>
-    <div id="historialVentas"></div>
-    <button id="btnCerrarHistorial" onclick="cerrarPanel()">Cerrar</button>
+    <h2>📄 Historial</h2>
+    <div id="historialVentas"></div>
+    <button id="btnCerrarHistorial">Cerrar</button>
 </aside>
 
 
 <main class="layout">
-    <section class="catalogo">
+    <section class="catalogo">
 
-        <div class="section-title">
-            <h2>Catalogo de Productos</h2>
-            <p>Selecciona los productos que deseas agregar al carrito</p>
-        </div>
+        <div class="section-title">
+            <h2>Catalogo de Productos</h2>
+            <p>Selecciona los productos que deseas agregar al carrito</p>
+        </div>
 
-        <div class="search-box">
-            <input type="search" placeholder="Buscar producto por nombre..." autocomplete="off" id="searchInput" class="search-input">
-            <button class="search-button">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
-        </div>
+        <div class="search-box">
+            <input type="search" placeholder="Buscar producto por nombre..." autocomplete="off" id="searchInput" class="search-input">
+            <button class="search-button">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </div>
 
-        <div id="productosContainer" class="productos-grid"></div>
+        <div id="productosContainer" class="productos-grid"></div>
 
-    </section>
+    </section>
 </main>
 
 
 <footer class="footer">
-    <div class="footer-content">
-        <p>2026 Papeleria Papel y Luna</p>
-        <p>Proyecto Desarrollo Web - Carrito de Compras JS</p>
-    </div>
+    <div class="footer-content">
+        <p>2026 Papeleria Papel y Luna</p>
+        <p>Proyecto Desarrollo Web - Carrito de Compras JS</p>
+    </div>
 
-    <nav class="menu">
+    <nav class="menu">
 
-        <button onclick="abrirPanel('panelProductos')">
-            ⚙ Administrar Productos
-        </button>
+        <button onclick="abrirPanel('panelProductos')">
+            ⚙ Administrar Productos
+        </button>
 
-        <button id="btnToggleCarrito">
-            🛒 Carrito
-            <span id="contadorCarrito">0</span>
-        </button>
+        <button id="btnToggleCarrito">
+            🛒 Carrito
+            <span id="contadorCarrito">0</span>
+        </button>
 
-        <button id="btnToggleHistorial">
-            📄 Historial
-        </button>
+        <button id="btnToggleHistorial">
+            📄 Historial
+        </button>
 
-    </nav>
+    </nav>
 </footer>
 
-<div id="overlay" class="overlay" onclick="cerrarPanel()"></div>
+<div id="overlay" class="overlay"></div>
 
 <script src="app.js"></script>
 
 </body>
 </html>
+ 
