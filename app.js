@@ -1,3 +1,4 @@
+// Configuración de la API (Cero datos quemados)
 const API_URL = "https://script.google.com/macros/s/AKfycbz6N302f_WhHXwN53cab3Xo1ke0gdTPXKt89iK6sXJKj_-AihhyazG1dJ03jZmda8sCMQ/exec";
 
 const API = {
@@ -7,7 +8,7 @@ const API = {
             const res = await response.json();
             return res.success ? res.data : [];
         } catch (error) {
-            console.error(`Error en GET ${resource}:`, error);
+            console.error(`Error crítico en GET ${resource}:`, error);
             return [];
         }
     },
@@ -15,68 +16,56 @@ const API = {
         try {
             const response = await fetch(`${API_URL}?resource=${resource}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "text/plain" }, // Bypass CORS Preflight
                 body: JSON.stringify(data)
             });
             return await response.json();
         } catch (error) {
-            console.error(`Error en POST ${resource}:`, error);
-            return { success: false, message: "Error de conexión" };
+            console.error(`Error crítico en POST ${resource}:`, error);
+            return { success: false, message: "Falla de red" };
         }
     }
 };
 
+// Estado global de la aplicación
 let productos = [];
 let carrito = [];
 let ventas = [];
-let ventaActual = nuevaVenta();
 
-function nuevaVenta() {
-    return {
-        id: crypto.randomUUID().slice(0, 8),
-        fecha: new Date().toISOString(),
-        estado: "abierta",
-        items: [],
-        total: 0,
-        metodoPago: null,
-        recibido: 0,
-        cambio: 0
-    };
-}
+// --- FUNCIONES DE LÓGICA DEL CARRITO ---
 
 function agregarAlCarrito(id) {
     const prod = productos.find(p => p.id == id);
     const existe = carrito.find(p => p.id == id);
-    if (existe) existe.cantidad++;
-    else carrito.push({ ...prod, cantidad: 1 });
-    renderizarCarrito();
-}
-
-function eliminarDelCarrito(id) {
-    carrito = carrito.filter(p => p.id != id);
+    if (existe) {
+        existe.cantidad++;
+    } else {
+        carrito.push({ ...prod, cantidad: 1 });
+    }
     renderizarCarrito();
 }
 
 function modificarCantidad(id, cant) {
     const prod = carrito.find(p => p.id == id);
     if (!prod) return;
-    if (cant <= 0) eliminarDelCarrito(id);
-    else {
+    if (cant <= 0) {
+        carrito = carrito.filter(p => p.id != id);
+    } else {
         prod.cantidad = cant;
-        renderizarCarrito();
     }
+    renderizarCarrito();
 }
 
-function totalCarrito() {
-    return carrito.reduce((a, p) => a + p.precio * p.cantidad, 0);
-}
+const calcularTotal = () => carrito.reduce((acc, p) => acc + (p.precio * p.cantidad), 0);
 
-function renderizarProductos(lista = productos) {
+// --- FUNCIONES DE RENDERIZADO (UI) ---
+
+function renderizarProductos() {
     const cont = document.getElementById("productosContainer");
     if (!cont) return;
-    cont.innerHTML = "";
+    cont.innerHTML = productos.length === 0 ? "<p>No hay productos disponibles.</p>" : "";
 
-    lista.forEach(p => {
+    productos.forEach(p => {
         const card = document.createElement("div");
         card.className = "producto-card";
         card.innerHTML = `
@@ -114,13 +103,13 @@ function renderizarCarrito() {
                 <span>${p.cantidad}</span>
                 <button onclick="modificarCantidad(${p.id}, ${p.cantidad + 1})">+</button>
             </div>
-            <button class="btn-eliminar" onclick="eliminarDelCarrito(${p.id})">Eliminar</button>
+            <button class="btn-eliminar" onclick="modificarCantidad(${p.id}, 0)">Eliminar</button>
         `;
         cont.appendChild(div);
     });
 
-    const total = totalCarrito();
-    if (totalDiv) totalDiv.textContent = total > 0 ? "Total: $" + total : "";
+    const total = calcularTotal();
+    if (totalDiv) totalDiv.textContent = total > 0 ? `Total: $${total}` : "";
     if (contador) contador.textContent = carrito.reduce((a, p) => a + p.cantidad, 0);
 }
 
@@ -134,13 +123,14 @@ function renderizarHistorial() {
         div.className = "venta-historial";
         div.innerHTML = `
             <p><strong>Venta #${v.id}</strong> - $${v.total}</p>
-            <p>Método: ${v.metodoPago} | Estado: ${v.estado}</p>
+            <p>Método: ${v.metodoPago} | Fecha: ${v.fecha}</p>
             <hr>
         `;
         cont.appendChild(div);
     });
 }
 
+// --- PANEL CONTROL ---
 
 function abrirPanel(id) {
     document.querySelectorAll(".panel").forEach(p => p.classList.add("oculto"));
@@ -153,91 +143,97 @@ function cerrarPanel() {
     document.getElementById("overlay").classList.remove("activo");
 }
 
+// --- INICIALIZACIÓN Y EVENTOS ---
 
 document.addEventListener("DOMContentLoaded", async () => {
-
-    // Intentar cargar productos de la API, si no, usar los locales
-    const prods = await API.get("productos");
-    productos = prods.length > 0 ? prods : [
-        { id: 1, nombre: "Papel", categoria: "Papeleria", img: "imagen.png", precio: 200 },
-        { id: 2, nombre: "Esfero", categoria: "Escritura", img: "esfero.png", precio: 400 }
-    ];
-
-    ventas = await API.get("ventas");
+    // 1. Carga inicial desde la fuente de verdad (Google Sheets)
+    // Usamos Promise.all para cargar en paralelo y mejorar performance
+    [productos, ventas] = await Promise.all([
+        API.get("productos"),
+        API.get("ventas")
+    ]);
 
     renderizarProductos();
     renderizarCarrito();
     renderizarHistorial();
 
-    // Eventos de botones
+    // 2. Listeners de navegación
     document.getElementById("btnToggleCarrito").onclick = () => abrirPanel("panelCarrito");
     document.getElementById("btnToggleHistorial").onclick = () => abrirPanel("panelHistorial");
-    
-    // Botones de cerrar (asegúrate de que estos IDs existan en tu HTML)
-    const btnCerrar = document.getElementById("btnCerrarPanel");
-    if(btnCerrar) btnCerrar.onclick = cerrarPanel;
-    
-    const btnCerrarHist = document.getElementById("btnCerrarHistorial");
-    if(btnCerrarHist) btnCerrarHist.onclick = cerrarPanel;
-
     document.getElementById("overlay").onclick = cerrarPanel;
 
-    // Métodos de pago
+    // 3. Lógica para guardar nuevos productos
+    const btnGuardarProd = document.getElementById("btnGuardarProducto");
+    if (btnGuardarProd) {
+        btnGuardarProd.onclick = async () => {
+            const nuevoProd = {
+                id: Date.now(),
+                nombre: document.getElementById("prodNombre").value,
+                categoria: document.getElementById("prodCategoria").value,
+                precio: Number(document.getElementById("prodPrecio").value),
+                img: document.getElementById("prodImagen").value || "default.png"
+            };
+
+            if (!nuevoProd.nombre || !nuevoProd.precio) return alert("Datos incompletos");
+
+            const res = await API.post("productos", nuevoProd);
+            if (res.success) {
+                productos.push(nuevoProd);
+                renderizarProductos();
+                cerrarPanel();
+            }
+        };
+    }
+
+    // 4. Lógica de Métodos de Pago
     document.querySelectorAll(".metodos-pago button").forEach(btn => {
         btn.onclick = () => {
             document.querySelectorAll(".metodos-pago button").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
-
-            const efectivoDiv = document.querySelector(".pago-efectivo");
-            if (efectivoDiv) {
-                efectivoDiv.style.display = btn.dataset.metodo === "efectivo" ? "flex" : "none";
-            }
-
-            if (btn.dataset.metodo === "nequi") {
-                alert(`Por favor, transfiere $${totalCarrito()} al número 300 123 4567`);
+            
+            const divEfectivo = document.querySelector(".pago-efectivo");
+            if (divEfectivo) {
+                divEfectivo.style.display = btn.dataset.metodo === "efectivo" ? "flex" : "none";
             }
         };
     });
 
-    // Confirmar Venta
+    // 5. EVENTO UNIFICADO: Confirmar Venta
     document.getElementById("btnConfirmarPago").onclick = async () => {
-        const metodoBtn = document.querySelector(".metodos-pago .active");
-
-        if (!metodoBtn) return alert("Selecciona un método de pago");
+        const metodoActivo = document.querySelector(".metodos-pago .active");
+        
+        if (!metodoActivo) return alert("Seleccione un método de pago");
         if (carrito.length === 0) return alert("El carrito está vacío");
 
-        const metodo = metodoBtn.dataset.metodo;
+        const metodo = metodoActivo.dataset.metodo;
+        const total = calcularTotal();
         let recibido = 0;
-        let cambio = 0;
 
         if (metodo === "efectivo") {
             recibido = Number(document.getElementById("dineroRecibido").value);
-            if (recibido < totalCarrito()) return alert("El dinero recibido es insuficiente");
-            cambio = recibido - totalCarrito();
+            if (recibido < total) return alert("Monto insuficiente");
         }
 
         const venta = {
-            ...ventaActual,
-            items: carrito,
-            total: totalCarrito(),
+            id: crypto.randomUUID().slice(0, 8),
+            fecha: new Date().toLocaleString(),
+            total: total,
             metodoPago: metodo,
-            recibido,
-            cambio,
+            items: JSON.stringify(carrito), // Serialización para persistencia en Sheets
             estado: "cerrada"
         };
 
         const res = await API.post("ventas", venta);
 
         if (res.success) {
-            alert(`Venta exitosa! Cambio: $${cambio}`);
+            alert(`Venta exitosa. Cambio: $${recibido > 0 ? recibido - total : 0}`);
             ventas.push(venta);
             carrito = [];
-            ventaActual = nuevaVenta();
             renderizarCarrito();
             renderizarHistorial();
             cerrarPanel();
         } else {
-            alert("Error al guardar la venta en la base de datos");
+            alert("Error en la persistencia de datos (Sheets)");
         }
     };
 });
