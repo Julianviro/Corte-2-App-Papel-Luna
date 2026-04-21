@@ -69,9 +69,6 @@ function renderizarProductos() {
         const card = document.createElement("div");
         card.className = "producto-card";
         card.innerHTML = `
-            <div class="img-container">
-                <img src="images/${p.img}" alt="${p.nombre}" onerror="this.src='https://via.placeholder.com/150?text=No+Imagen'">
-            </div>
             <h3>${p.nombre}</h3>
             <p class="categoria">${p.categoria}</p>
             <p class="precio">$${p.precio}</p>
@@ -171,7 +168,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 nombre: document.getElementById("prodNombre").value,
                 categoria: document.getElementById("prodCategoria").value,
                 precio: Number(document.getElementById("prodPrecio").value),
-                img: document.getElementById("prodImagen").value || "default.png"
             };
 
             if (!nuevoProd.nombre || !nuevoProd.precio) return alert("Datos incompletos");
