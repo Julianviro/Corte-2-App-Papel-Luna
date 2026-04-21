@@ -50,18 +50,12 @@ function agregarAlCarrito(id) {
 function modificarCantidad(id, cant) {
     const prod = carrito.find(p => p.id == id);
     if (!prod) return;
-    
-    const pOriginal = productos.find(x => x.id == id);
-    
-    if (cant > pOriginal.stock) {
-        alert("No puedes superar el stock disponible");
-        return;
-    }
-
     if (cant <= 0) {
         carrito = carrito.filter(p => p.id != id);
     } else {
-        prod.cantidad = Math.floor(cant);
+        const pOriginal = productos.find(x => x.id == id);
+        if (cant > pOriginal.stock) return alert("Excede el stock disponible");
+        prod.cantidad = cant;
     }
     renderizarCarrito();
 }
@@ -84,35 +78,9 @@ function renderizarProductos(listaParaMostrar = productos) {
             <button class="btn-agregar" ${p.stock <= 0 ? 'disabled' : ''} onclick="agregarAlCarrito(${p.id})">
                 ${p.stock <= 0 ? 'Agotado' : 'Agregar'}
             </button>
-            <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">Eliminar</button>
         `;
         cont.appendChild(card);
     });
-}
-
-async function eliminarProducto(id) {
-    if (!confirm("¿Eliminar producto?")) return;
-    const res = await API.post("productos", { id, action: "DELETE" });
-    if (res.success) {
-        productos = productos.filter(p => p.id != id);
-        renderizarProductos();
-    }
-}
-
-async function registrarFaltante() {
-    let p = prompt("Producto faltante:");
-    if (!p) return;
-    
-    p = p.toLowerCase().trim();
-    if (p.endsWith('s')) p = p.slice(0, -1);
-    if (p.endsWith('es')) p = p.slice(0, -2);
-
-    const res = await API.post("faltantes", {
-        fecha: new Date().toLocaleString(),
-        producto: p,
-        estado: "pendiente"
-    });
-    if (res.success) alert(`Faltante '${p}' registrado`);
 }
 
 function renderizarCarrito() {
@@ -147,65 +115,56 @@ function renderizarCarrito() {
     if (contador) contador.textContent = carrito.reduce((a, p) => a + p.cantidad, 0);
 }
 
+function renderizarHistorial(lista = ventas) {
+    const cont = document.getElementById("historialVentas");
+    if (!cont) return;
+    cont.innerHTML = lista.length === 0 ? "<p>No hay ventas registradas</p>" : "";
+
+    lista.slice().reverse().forEach(v => {
+        const div = document.createElement("div");
+        div.className = `venta-historial ${v.estado}`;
+        div.innerHTML = `
+            <p><strong>#${v.id}</strong> - $${v.total}</p>
+            <p>Pago: ${v.metodoPago} | Cliente: ${v.cliente || 'Mostrador'}</p>
+            <p>Estado: ${v.estado.toUpperCase()}</p>
+            <hr>
+        `;
+        cont.appendChild(div);
+    });
+}
+
+async function registrarFaltante() {
+    let p = prompt("Producto faltante:");
+    if (!p) return;
+    p = p.toLowerCase().trim();
+    if (p.endsWith('s')) p = p.slice(0, -1);
+
+    const res = await API.post("faltantes", {
+        fecha: new Date().toLocaleString(),
+        producto: p,
+        estado: "pendiente"
+    });
+    if (res.success) alert(`Faltante '${p}' registrado`);
+}
+
 async function registrarCompra() {
     const id = prompt("ID del producto:");
     const cant = Number(prompt("Cantidad comprada:"));
-    const prov = prompt("Nombre del proveedor:");
-
     if (!id || isNaN(cant)) return;
 
-    const res = await API.post("compras", {
-        idProducto: id,
-        cantidad: cant,
-        proveedor: prov,
-        fecha: new Date().toLocaleString()
-    });
-
+    const res = await API.post("compras", { idProducto: id, cantidad: cant, fecha: new Date().toLocaleString() });
     if (res.success) {
         const prod = productos.find(x => x.id == id);
         if (prod) prod.stock += cant;
         renderizarProductos();
-        alert("Inventario actualizado por compra");
+        alert("Stock actualizado");
     }
 }
 
-function renderizarHistorial() {
-    const cont = document.getElementById("historialVentas");
-    if (!cont) return;
-    cont.innerHTML = ventas.length === 0 ? "<p>No hay ventas registradas</p>" : "";
-
-    ventas.slice().reverse().forEach(v => {
-        const div = document.createElement("div");
-        div.className = "venta-historial";
-        div.innerHTML = `
-            <p><strong>Venta #${v.id}</strong> - $${v.total}</p>
-            <p>Método: ${v.metodoPago} | Cliente: ${v.cliente || 'Mostrador'}</p>
-            <p>Fecha: ${v.fecha}</p>
-            <hr>
-        `;
-        cont.appendChild(div);
-    });
-}
-
 function filtrarHistorial(criterio) {
-    const filtradas = ventas.filter(v => {
-        if (criterio === "pendientes") return v.estado === "pendiente";
-        if (criterio === "hoy") return v.fecha.includes(new Date().toLocaleDateString());
-        return true;
-    });
-
-    const cont = document.getElementById("historialVentas");
-    cont.innerHTML = "";
-    filtradas.slice().reverse().forEach(v => {
-        const div = document.createElement("div");
-        div.className = `venta-item ${v.estado}`;
-        div.innerHTML = `
-            <p><strong>#${v.id}</strong> - $${v.total} (${v.estado})</p>
-            <p>Cliente: ${v.cliente} | ${v.fecha}</p>
-            <hr>
-        `;
-        cont.appendChild(div);
-    });
+    if (criterio === 'todas') return renderizarHistorial(ventas);
+    const filtradas = ventas.filter(v => v.estado === criterio);
+    renderizarHistorial(filtradas);
 }
 
 function abrirPanel(id) {
@@ -232,6 +191,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("btnToggleCarrito").onclick = () => abrirPanel("panelCarrito");
     document.getElementById("btnToggleHistorial").onclick = () => abrirPanel("panelHistorial");
     document.getElementById("overlay").onclick = cerrarPanel;
+    document.getElementById("btnCerrarPanel").onclick = cerrarPanel;
+    document.getElementById("btnCerrarHistorial").onclick = cerrarPanel;
 
     const searchInput = document.getElementById("searchInput");
     if (searchInput) {
@@ -245,107 +206,79 @@ document.addEventListener("DOMContentLoaded", async () => {
         };
     }
 
-    const btnFaltante = document.getElementById("btnRegistrarFaltante");
-    if (btnFaltante) {
-        btnFaltante.onclick = async () => {
-            const pFaltante = prompt("Nombre del producto faltante:");
-            if (!pFaltante) return;
-            const res = await API.post("faltantes", {
-                fecha: new Date().toLocaleString(),
-                producto: pFaltante.toLowerCase(),
-                estado: "pendiente"
-            });
-            if (res.success) alert("Faltante registrado");
+    document.getElementById("btnGuardarProducto").onclick = async () => {
+        const nuevoProd = {
+            id: Date.now(),
+            nombre: document.getElementById("prodNombre").value,
+            categoria: document.getElementById("prodCategoria").value,
+            precio: Number(document.getElementById("prodPrecio").value),
+            costo: Number(document.getElementById("prodPrecios").value),
+            stock: Number(document.getElementById("prodCantidad").value),
+            seguimiento: "Si"
         };
-    }
 
-    const btnGuardarProd = document.getElementById("btnGuardarProducto");
-    if (btnGuardarProd) {
-        btnGuardarProd.onclick = async () => {
-            const nuevoProd = {
-                id: Date.now(),
-                nombre: document.getElementById("prodNombre").value,
-                categoria: document.getElementById("prodCategoria").value,
-                precio: Number(document.getElementById("prodPrecio").value),
-                costo: Number(document.getElementById("prodPrecios").value),
-                stock: Number(document.getElementById("prodCantidad").value),
-                seguimiento: "Si"
-            };
+        if (!nuevoProd.nombre || !nuevoProd.precio) return alert("Datos incompletos");
 
-            if (!nuevoProd.nombre || !nuevoProd.precio || !nuevoProd.costo) {
-                return alert("Datos incompletos");
-            }
-
-            const res = await API.post("productos", nuevoProd);
-            if (res.success) {
-                alert("Producto guardado");
-                productos.push(nuevoProd);
-                renderizarProductos();
-                cerrarPanel();
-                document.querySelectorAll("#panelProductos input").forEach(i => i.value = "");
-            }
-        };
-    }
+        const res = await API.post("productos", nuevoProd);
+        if (res.success) {
+            productos.push(nuevoProd);
+            renderizarProductos();
+            cerrarPanel();
+        }
+    };
 
     document.querySelectorAll(".metodos-pago button").forEach(btn => {
         btn.onclick = () => {
             document.querySelectorAll(".metodos-pago button").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             const divEfectivo = document.querySelector(".pago-efectivo");
-            if (divEfectivo) {
-                divEfectivo.style.display = btn.dataset.metodo === "efectivo" ? "flex" : "none";
-            }
+            if (divEfectivo) divEfectivo.style.display = btn.dataset.metodo === "efectivo" ? "flex" : "none";
         };
     });
 
     document.getElementById("btnConfirmarPago").onclick = async () => {
-        const metodoActivo = document.querySelector(".metodos-pago .active");
-        if (!metodoActivo || carrito.length === 0) return alert("Error en la operación");
+        const btnActivo = document.querySelector(".metodos-pago .active");
+        if (!btnActivo || carrito.length === 0) return alert("Verifique el carrito y método de pago");
 
-        const metodo = metodoActivo.dataset.metodo;
+        const metodo = btnActivo.dataset.metodo;
         const total = calcularTotal();
-        let recibido = 0;
-
-        if (metodo === "efectivo") {
-            recibido = Number(document.getElementById("dineroRecibido").value);
-            if (recibido < total) return alert("Monto insuficiente");
-        }
-
-      
-        const metodo = metodoActivo.dataset.metodo;
-        let clienteVenta = "Mostrador";
-        let estadoVenta = "cerrada";
+        let cliente = "Mostrador";
+        let estado = "cerrada";
 
         if (metodo === "debe") {
-            clienteVenta = prompt("Nombre del cliente para la cuenta por cobrar:");
-            if (!clienteVenta) return alert("Debe asignar un cliente para deudas");
-            estadoVenta = "pendiente";
+            cliente = prompt("Nombre del deudor:");
+            if (!cliente) return alert("Cliente obligatorio para deuda");
+            estado = "pendiente";
+        }
+
+        if (metodo === "efectivo") {
+            const recibido = Number(document.getElementById("dineroRecibido").value);
+            if (recibido < total) return alert("Dinero insuficiente");
         }
 
         const venta = {
             id: crypto.randomUUID().slice(0, 8),
             fecha: new Date().toLocaleString(),
-            total: total,
+            total,
             metodoPago: metodo,
-            cliente: clienteVenta,
+            cliente,
             items: JSON.stringify(carrito),
-            estado: estadoVenta
+            estado
         };
 
         const res = await API.post("ventas", venta);
-
         if (res.success) {
             carrito.forEach(item => {
                 const p = productos.find(x => x.id == item.id);
                 if (p) p.stock -= item.cantidad;
             });
-            alert("Operación exitosa");
             ventas.push(venta);
             carrito = [];
             renderizarCarrito();
             renderizarProductos();
             renderizarHistorial();
             cerrarPanel();
+            alert("Venta procesada");
         }
     };
 });
