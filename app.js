@@ -169,10 +169,9 @@ if (btnGuardarProd) {
             nombre: document.getElementById("prodNombre").value,
             categoria: document.getElementById("prodCategoria").value,
             precio: Number(document.getElementById("prodPrecio").value),
-            img: document.getElementById("prodImagen").value || "default.png",
-            costo: Number(document.getElementById("prodPrecioProveedor").value),
-            stock: Number(document.getElementById("prodStock").value),
-            seguimiento: "Si" // Valor por defecto
+            costo: Number(document.getElementById("prodPrecios").value),
+            stock: Number(document.getElementById("prodCantidad").value),
+            seguimiento: "Si"
         };
 
         // Verificamos que los campos técnicos básicos no estén vacíos
