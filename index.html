@@ -31,19 +31,11 @@
         <input type="number" id="prodPrecios" placeholder="Precio Proveedor*">
         <input type="number" id="prodPrecio" placeholder="Precio *" min="1">
         <input type="number" id="prodCantidad" placeholder="Mercancia disponible *" min="1">
-        <input type="text" id="prodImagen" placeholder="Nombre de imagen (ej: producto.png)">
 
         <div class="form-buttons">
             <button id="btnGuardarProducto" class="btn-guardar">Guardar Producto</button>
             <button id="btnLimpiarForm" class="btn-limpiar">Limpiar</button>
         </div>
-    </div>
-
-    <hr>
-    
-    <div class="compra-form">
-        <h3>Cargar Mercancía (Compras)</h3>
-        <button id="btnCompra" onclick="registrarCompra()" class="btn-secundario">Registrar Compra Proveedor</button>
     </div>
 
     <hr>
@@ -68,7 +60,6 @@
         <div class="metodos-pago">
             <button data-metodo="efectivo" class="active">Efectivo</button>
             <button data-metodo="nequi">Nequi</button>
-            <button data-metodo="debe">Debe (Crédito)</button>
         </div>
 
         <div class="pago-efectivo">
@@ -79,18 +70,12 @@
         <button id="btnConfirmarPago">Confirmar pago</button>
     </div>
 
-    <button id="btnCerrarPanel" class="btn-cerrar-panel">Cerrar</button>
+    <button id="btnCerrarPanel" class="btn-cerrar-panel" onclick="cerrarPanel()">Cerrar</button>
 </aside>
 
 
 <aside id="panelHistorial" class="panel oculto">
-    <h2>📄 Historial de Ventas</h2>
-    
-    <div class="filtros-historial">
-        <button onclick="filtrarHistorial('todas')" class="btn-filtro">Todas</button>
-        <button onclick="filtrarHistorial('pendientes')" class="btn-filtro">Pendientes (Debe)</button>
-    </div>
-
+    <h2>📄 Historial</h2>
     <div id="historialVentas"></div>
     <button id="btnCerrarHistorial" onclick="cerrarPanel()">Cerrar</button>
 </aside>
@@ -109,9 +94,6 @@
             <button class="search-button">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </button>
-            <button id="btnRegistrarFaltante" onclick="registrarFaltante()" class="btn-faltante" title="Reportar producto no encontrado">
-                <i class="fa-solid fa-clipboard-list"></i> Faltante
-            </button>
         </div>
 
         <div id="productosContainer" class="productos-grid"></div>
@@ -123,13 +105,13 @@
 <footer class="footer">
     <div class="footer-content">
         <p>2026 Papeleria Papel y Luna</p>
-        <p>Proyecto Desarrollo Web - POS Ingeniería</p>
+        <p>Proyecto Desarrollo Web - Carrito de Compras JS</p>
     </div>
 
     <nav class="menu">
 
         <button onclick="abrirPanel('panelProductos')">
-            ⚙ Administrar
+            ⚙ Administrar Productos
         </button>
 
         <button id="btnToggleCarrito">
@@ -144,7 +126,7 @@
     </nav>
 </footer>
 
-<div id="overlay" class="overlay"></div>
+<div id="overlay" class="overlay" onclick="cerrarPanel()"></div>
 
 <script src="app.js"></script>
 
