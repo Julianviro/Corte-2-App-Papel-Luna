@@ -159,27 +159,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("btnToggleHistorial").onclick = () => abrirPanel("panelHistorial");
     document.getElementById("overlay").onclick = cerrarPanel;
 
-    // 3. Lógica para guardar nuevos productos
-    const btnGuardarProd = document.getElementById("btnGuardarProducto");
-    if (btnGuardarProd) {
-        btnGuardarProd.onclick = async () => {
-            const nuevoProd = {
-                id: Date.now(),
-                nombre: document.getElementById("prodNombre").value,
-                categoria: document.getElementById("prodCategoria").value,
-                precio: Number(document.getElementById("prodPrecio").value),
-            };
-
-            if (!nuevoProd.nombre || !nuevoProd.precio) return alert("Datos incompletos");
-
-            const res = await API.post("productos", nuevoProd);
-            if (res.success) {
-                productos.push(nuevoProd);
-                renderizarProductos();
-                cerrarPanel();
-            }
+    // 3. Lógica para guardar nuevos productos (INTEGRADA CON INVENTARIO)
+const btnGuardarProd = document.getElementById("btnGuardarProducto");
+if (btnGuardarProd) {
+    btnGuardarProd.onclick = async () => {
+        // Capturamos los datos incluyendo los de inventario
+        const nuevoProd = {
+            id: Date.now(),
+            nombre: document.getElementById("prodNombre").value,
+            categoria: document.getElementById("prodCategoria").value,
+            precio: Number(document.getElementById("prodPrecio").value),
+            img: document.getElementById("prodImagen").value || "default.png",
+            costo: Number(document.getElementById("prodPrecioProveedor").value),
+            stock: Number(document.getElementById("prodStock").value),
+            seguimiento: "Si" // Valor por defecto
         };
-    }
+
+        // Verificamos que los campos técnicos básicos no estén vacíos
+        if (!nuevoProd.nombre || !nuevoProd.precio || !nuevoProd.costo) {
+            return alert("Datos incompletos: Nombre, Precio y Costo son obligatorios");
+        }
+
+        const res = await API.post("productos", nuevoProd);
+        
+        if (res.success) {
+            alert("Producto guardado exitosamente");
+            productos.push(nuevoProd);
+            renderizarProductos();
+            cerrarPanel();
+            
+            // Limpiar los inputs del panel
+            document.querySelectorAll("#panelProductos input").forEach(i => i.value = "");
+        } else {
+            alert("Error al guardar en Google Sheets");
+        }
+    };
+}
 
     // 4. Lógica de Métodos de Pago
     document.querySelectorAll(".metodos-pago button").forEach(btn => {
