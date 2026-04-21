@@ -53,6 +53,8 @@ function modificarCantidad(id, cant) {
     if (cant <= 0) {
         carrito = carrito.filter(p => p.id != id);
     } else {
+        const pOriginal = productos.find(x => x.id == id);
+        if (cant > pOriginal.stock) return alert("Excede el stock disponible");
         prod.cantidad = cant;
     }
     renderizarCarrito();
@@ -60,22 +62,35 @@ function modificarCantidad(id, cant) {
 
 const calcularTotal = () => carrito.reduce((acc, p) => acc + (p.precio * p.cantidad), 0);
 
-function renderizarProductos() {
+function renderizarProductos(listaParaMostrar = productos) {
     const cont = document.getElementById("productosContainer");
     if (!cont) return;
-    cont.innerHTML = productos.length === 0 ? "<p>No hay productos disponibles.</p>" : "";
+    cont.innerHTML = listaParaMostrar.length === 0 ? "<p>No se encontraron productos.</p>" : "";
 
-    productos.forEach(p => {
+    listaParaMostrar.forEach(p => {
         const card = document.createElement("div");
         card.className = "producto-card";
         card.innerHTML = `
             <h3>${p.nombre}</h3>
             <p class="categoria">${p.categoria}</p>
+            <p>Disponible: ${p.stock}</p>
             <p class="precio">$${p.precio}</p>
-            <button class="btn-agregar" onclick="agregarAlCarrito(${p.id})">Agregar</button>
+            <button class="btn-agregar" ${p.stock <= 0 ? 'disabled' : ''} onclick="agregarAlCarrito(${p.id})">
+                ${p.stock <= 0 ? 'Agotado' : 'Agregar'}
+            </button>
+            <button class="btn-eliminar" onclick="eliminarProducto(${p.id})">Eliminar</button>
         `;
         cont.appendChild(card);
     });
+}
+
+async function eliminarProducto(id) {
+    if (!confirm("¿Eliminar producto?")) return;
+    const res = await API.post("productos", { id, action: "DELETE" });
+    if (res.success) {
+        productos = productos.filter(p => p.id != id);
+        renderizarProductos();
+    }
 }
 
 function renderizarCarrito() {
@@ -120,7 +135,8 @@ function renderizarHistorial() {
         div.className = "venta-historial";
         div.innerHTML = `
             <p><strong>Venta #${v.id}</strong> - $${v.total}</p>
-            <p>Método: ${v.metodoPago} | Fecha: ${v.fecha}</p>
+            <p>Método: ${v.metodoPago} | Cliente: ${v.cliente || 'Mostrador'}</p>
+            <p>Fecha: ${v.fecha}</p>
             <hr>
         `;
         cont.appendChild(div);
@@ -152,60 +168,108 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("btnToggleHistorial").onclick = () => abrirPanel("panelHistorial");
     document.getElementById("overlay").onclick = cerrarPanel;
 
-    document.getElementById("btnGuardarProducto").onclick = async () => {
-        const nuevoProd = {
-            id: Date.now(),
-            nombre: document.getElementById("prodNombre").value,
-            categoria: document.getElementById("prodCategoria").value,
-            precio: Number(document.getElementById("prodPrecio").value),
-            costo: Number(document.getElementById("prodPrecios").value),
-            stock: Number(document.getElementById("prodCantidad").value),
-            seguimiento: "Si"
+    const searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+        searchInput.oninput = (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            const filtrados = productos.filter(p => 
+                p.nombre.toLowerCase().includes(term) || 
+                p.categoria.toLowerCase().includes(term)
+            );
+            renderizarProductos(filtrados);
         };
+    }
 
-        if (!nuevoProd.nombre || !nuevoProd.precio) return alert("Datos incompletos");
+    const btnFaltante = document.getElementById("btnRegistrarFaltante");
+    if (btnFaltante) {
+        btnFaltante.onclick = async () => {
+            const pFaltante = prompt("Nombre del producto faltante:");
+            if (!pFaltante) return;
+            const res = await API.post("faltantes", {
+                fecha: new Date().toLocaleString(),
+                producto: pFaltante.toLowerCase(),
+                estado: "pendiente"
+            });
+            if (res.success) alert("Faltante registrado");
+        };
+    }
 
-        const res = await API.post("productos", nuevoProd);
-        if (res.success) {
-            productos.push(nuevoProd);
-            renderizarProductos();
-            cerrarPanel();
-            document.querySelectorAll("#panelProductos input").forEach(i => i.value = "");
-        }
-    };
+    const btnGuardarProd = document.getElementById("btnGuardarProducto");
+    if (btnGuardarProd) {
+        btnGuardarProd.onclick = async () => {
+            const nuevoProd = {
+                id: Date.now(),
+                nombre: document.getElementById("prodNombre").value,
+                categoria: document.getElementById("prodCategoria").value,
+                precio: Number(document.getElementById("prodPrecio").value),
+                costo: Number(document.getElementById("prodPrecios").value),
+                stock: Number(document.getElementById("prodCantidad").value),
+                seguimiento: "Si"
+            };
+
+            if (!nuevoProd.nombre || !nuevoProd.precio || !nuevoProd.costo) {
+                return alert("Datos incompletos");
+            }
+
+            const res = await API.post("productos", nuevoProd);
+            if (res.success) {
+                alert("Producto guardado");
+                productos.push(nuevoProd);
+                renderizarProductos();
+                cerrarPanel();
+                document.querySelectorAll("#panelProductos input").forEach(i => i.value = "");
+            }
+        };
+    }
 
     document.querySelectorAll(".metodos-pago button").forEach(btn => {
         btn.onclick = () => {
             document.querySelectorAll(".metodos-pago button").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             const divEfectivo = document.querySelector(".pago-efectivo");
-            if (divEfectivo) divEfectivo.style.display = btn.dataset.metodo === "efectivo" ? "flex" : "none";
+            if (divEfectivo) {
+                divEfectivo.style.display = btn.dataset.metodo === "efectivo" ? "flex" : "none";
+            }
         };
     });
 
     document.getElementById("btnConfirmarPago").onclick = async () => {
         const metodoActivo = document.querySelector(".metodos-pago .active");
-        if (!metodoActivo || carrito.length === 0) return alert("Seleccione pago y productos");
+        if (!metodoActivo || carrito.length === 0) return alert("Error en la operación");
 
         const metodo = metodoActivo.dataset.metodo;
         const total = calcularTotal();
+        let recibido = 0;
+
+        if (metodo === "efectivo") {
+            recibido = Number(document.getElementById("dineroRecibido").value);
+            if (recibido < total) return alert("Monto insuficiente");
+        }
 
         const venta = {
             id: crypto.randomUUID().slice(0, 8),
             fecha: new Date().toLocaleString(),
             total: total,
             metodoPago: metodo,
-            items: JSON.stringify(carrito)
+            cliente: metodo === "debe" ? prompt("Nombre del cliente:") : "Mostrador",
+            items: JSON.stringify(carrito),
+            estado: metodo === "debe" ? "pendiente" : "cerrada"
         };
 
         const res = await API.post("ventas", venta);
+
         if (res.success) {
+            carrito.forEach(item => {
+                const p = productos.find(x => x.id == item.id);
+                if (p) p.stock -= item.cantidad;
+            });
+            alert("Operación exitosa");
             ventas.push(venta);
             carrito = [];
             renderizarCarrito();
+            renderizarProductos();
             renderizarHistorial();
             cerrarPanel();
-            alert("Venta realizada");
         }
     };
 });
